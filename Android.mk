@@ -30,9 +30,19 @@ ifeq ($(BOARD_USES_QCOM_FBE_DECRYPTION),true)
     # Cannot send to TARGET_RECOVERY_ROOT_OUT since build system wipes init*.rc
     # during ramdisk creation and only allows init.recovery.*.rc files to be copied
     # from TARGET_ROOT_OUT thereafter
-    LOCAL_POST_INSTALL_CMD += \
-        cp -f $(LOCAL_PATH)/crypto_fbe/init.recovery* $(TARGET_ROOT_OUT); \
-        bash $(LOCAL_PATH)/scripts/service_cleanup.bash;
+    ifneq ($(filter enchilada fajita,$(TARGET_DEVICE)),)
+        ifeq ($(TARGET_DEVICE),enchilada)
+            LOCAL_POST_INSTALL_CMD += \
+                cp -f $(LOCAL_PATH)/crypto_fbe/init.recovery.qcom_decrypt.fbe.rc.enchilada $(TARGET_ROOT_OUT)/init.recovery.qcom_decrypt.fbe.rc;
+        else
+            LOCAL_POST_INSTALL_CMD += \
+                cp -f $(LOCAL_PATH)/crypto_fbe/init.recovery.qcom_decrypt.fbe.rc.fajita $(TARGET_ROOT_OUT)/init.recovery.qcom_decrypt.fbe.rc;
+        endif
+    else
+        LOCAL_POST_INSTALL_CMD += \
+            cp -f $(LOCAL_PATH)/crypto_fbe/init.recovery.qcom_decrypt.fbe.rc $(TARGET_ROOT_OUT)/; \
+            bash $(LOCAL_PATH)/scripts/service_cleanup.bash;
+    endif
     include $(BUILD_PHONY_PACKAGE)
 endif
 
@@ -65,17 +75,23 @@ ifeq ($(BOARD_USES_QCOM_DECRYPTION),true)
         else echo -e '\n*** init.recovery.qcom.rc not found ***\nYou will need to manually add the import for init.recovery.qcom_decrypt.rc to your init.recovery.(ro.hardware).rc file!!\n'; fi; \
         cp -Ra $(LOCAL_PATH)/crypto/system $(TARGET_ROOT_OUT)/;
 
-    ifeq ($(PRODUCT_USE_DYNAMIC_PARTITIONS),true)
-        LOCAL_POST_INSTALL_CMD += \
-            cp -f $(LOCAL_PATH)/crypto/init.recovery.qcom_decrypt.rc $(TARGET_ROOT_OUT)/;
+    ifneq ($(filter enchilada fajita,$(TARGET_DEVICE)),)
+        ifeq ($(TARGET_DEVICE),enchilada)
+            LOCAL_POST_INSTALL_CMD += \
+                cp -f $(LOCAL_PATH)/crypto/init.recovery.qcom_decrypt.rc.enchilada $(TARGET_ROOT_OUT)/init.recovery.qcom_decrypt.rc;
+        else
+            LOCAL_POST_INSTALL_CMD += \
+                cp -f $(LOCAL_PATH)/crypto/init.recovery.qcom_decrypt.rc.fajita $(TARGET_ROOT_OUT)/init.recovery.qcom_decrypt.rc;
+        endif
     else
-        LOCAL_POST_INSTALL_CMD += \
-            cp -f $(LOCAL_PATH)/crypto/init.recovery.qcom_decrypt.rc $(TARGET_ROOT_OUT)/; \
-            sed -i 's/on property:ro.crypto.state=encrypted && property:ro.boot.dynamic_partitions=true/on property:ro.crypto.state=encrypted/' $(TARGET_ROOT_OUT)/init.recovery.qcom_decrypt.rc;
-    endif
-    ifeq ($(BOARD_USES_QCOM_FBE_DECRYPTION),)
-        LOCAL_POST_INSTALL_CMD += \
-            bash $(LOCAL_PATH)/scripts/service_cleanup.bash;
+        ifeq ($(PRODUCT_USE_DYNAMIC_PARTITIONS),true)
+            LOCAL_POST_INSTALL_CMD += \
+                cp -f $(LOCAL_PATH)/crypto/init.recovery.qcom_decrypt.rc $(TARGET_ROOT_OUT)/;
+        else
+            LOCAL_POST_INSTALL_CMD += \
+                cp -f $(LOCAL_PATH)/crypto/init.recovery.qcom_decrypt.rc $(TARGET_ROOT_OUT)/; \
+                sed -i 's/on property:ro.crypto.state=encrypted && property:ro.boot.dynamic_partitions=true/on property:ro.crypto.state=encrypted/' $(TARGET_ROOT_OUT)/init.recovery.qcom_decrypt.rc;
+        endif
     endif
     include $(BUILD_PHONY_PACKAGE)
 endif
